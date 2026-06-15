@@ -196,8 +196,8 @@ export function renderSessionLine(ctx: RenderContext): string {
       const fiveHour = ctx.usageData.fiveHour;
       const sevenDay = ctx.usageData.sevenDay;
       const isZhipu = ctx.usageProvider === 'zhipu' || ctx.usageProvider === 'zai';
-      const secondWindowShort = isZhipu ? 'mo' : '7d';
-      const secondWindowLabel = isZhipu ? t('label.monthly') : t('label.weekly');
+      const secondWindowShort = isZhipu ? 'MCP' : '7d';
+      const secondWindowLabel = isZhipu ? t('label.mcp') : t('label.weekly');
       const effectiveUsage = Math.max(fiveHour ?? 0, sevenDay ?? 0);
 
       if ((hasWindowData || !ctx.usageData.balanceLabel) && effectiveUsage >= usageThreshold) {
@@ -207,7 +207,7 @@ export function renderSessionLine(ctx: RenderContext): string {
             ? formatCompactWindowPart('5h', fiveHour, ctx.usageData.fiveHourResetAt, timeFormat, colors, usageValueMode)
             : null;
           const sevenDayThreshold = display?.sevenDayThreshold ?? 80;
-          const sevenDayPart = (sevenDay !== null && (fiveHour === null || sevenDay >= sevenDayThreshold))
+          const sevenDayPart = (sevenDay !== null && (fiveHour === null || isZhipu || sevenDay >= sevenDayThreshold))
             ? formatCompactWindowPart(secondWindowShort, sevenDay, ctx.usageData.sevenDayResetAt, timeFormat, colors, usageValueMode)
             : null;
 
@@ -247,7 +247,7 @@ export function renderSessionLine(ctx: RenderContext): string {
           });
 
           const sevenDayThreshold = display?.sevenDayThreshold ?? 80;
-          if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
+          if (sevenDay !== null && (isZhipu || sevenDay >= sevenDayThreshold)) {
             const sevenDayPart = formatUsageWindowPart({
               label: secondWindowLabel,
               percent: sevenDay,

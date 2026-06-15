@@ -181,8 +181,8 @@ export function renderSessionLine(ctx) {
             const fiveHour = ctx.usageData.fiveHour;
             const sevenDay = ctx.usageData.sevenDay;
             const isZhipu = ctx.usageProvider === 'zhipu' || ctx.usageProvider === 'zai';
-            const secondWindowShort = isZhipu ? 'mo' : '7d';
-            const secondWindowLabel = isZhipu ? t('label.monthly') : t('label.weekly');
+            const secondWindowShort = isZhipu ? 'MCP' : '7d';
+            const secondWindowLabel = isZhipu ? t('label.mcp') : t('label.weekly');
             const effectiveUsage = Math.max(fiveHour ?? 0, sevenDay ?? 0);
             if ((hasWindowData || !ctx.usageData.balanceLabel) && effectiveUsage >= usageThreshold) {
                 const usageBarEnabled = display?.usageBarEnabled ?? true;
@@ -191,7 +191,7 @@ export function renderSessionLine(ctx) {
                         ? formatCompactWindowPart('5h', fiveHour, ctx.usageData.fiveHourResetAt, timeFormat, colors, usageValueMode)
                         : null;
                     const sevenDayThreshold = display?.sevenDayThreshold ?? 80;
-                    const sevenDayPart = (sevenDay !== null && (fiveHour === null || sevenDay >= sevenDayThreshold))
+                    const sevenDayPart = (sevenDay !== null && (fiveHour === null || isZhipu || sevenDay >= sevenDayThreshold))
                         ? formatCompactWindowPart(secondWindowShort, sevenDay, ctx.usageData.sevenDayResetAt, timeFormat, colors, usageValueMode)
                         : null;
                     if (fiveHourPart && sevenDayPart) {
@@ -233,7 +233,7 @@ export function renderSessionLine(ctx) {
                         usageValueMode,
                     });
                     const sevenDayThreshold = display?.sevenDayThreshold ?? 80;
-                    if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
+                    if (sevenDay !== null && (isZhipu || sevenDay >= sevenDayThreshold)) {
                         const sevenDayPart = formatUsageWindowPart({
                             label: secondWindowLabel,
                             percent: sevenDay,

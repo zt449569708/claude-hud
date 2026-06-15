@@ -1995,7 +1995,7 @@ test('renderUsageLine shows weekly-only usage without a ghost 5h section', () =>
   assert.ok(!line.includes('|'), `should not render a separator for a missing 5h window: ${line}`);
 });
 
-test('renderUsageLine shows Monthly label for GLM Coding Plan providers in expanded mode', () => {
+test('renderUsageLine shows MCP label for GLM Coding Plan providers in expanded mode', () => {
   const ctx = baseContext();
   ctx.config.display.sevenDayThreshold = 80;
   ctx.usageProvider = 'zhipu';
@@ -2006,7 +2006,7 @@ test('renderUsageLine shows Monthly label for GLM Coding Plan providers in expan
     sevenDayResetAt: null,
   };
   const line = stripAnsi(renderUsageLine(ctx));
-  assert.ok(line.includes('Monthly'), `should render monthly window for zhipu: ${line}`);
+  assert.ok(line.includes('MCP'), `should render MCP window for zhipu: ${line}`);
   assert.ok(!line.includes('Weekly'), `should not render weekly for zhipu: ${line}`);
   assert.ok(line.includes('5h'), `5h window label stays the same: ${line}`);
 });
@@ -2022,7 +2022,7 @@ test('renderUsageLine uses mo short label for GLM providers in compact mode', ()
     sevenDayResetAt: null,
   };
   const line = stripAnsi(renderUsageLine(ctx));
-  assert.ok(line.includes('mo:'), `should render compact monthly label: ${line}`);
+  assert.ok(line.includes('MCP:'), `should render compact MCP label: ${line}`);
   assert.ok(!line.includes('7d:'), `should not render 7d for glm provider: ${line}`);
 });
 
@@ -2037,7 +2037,7 @@ test('renderSessionLine adapts monthly label for GLM providers in compact usage'
     sevenDayResetAt: null,
   };
   const line = stripAnsi(renderSessionLine(ctx));
-  assert.ok(line.includes('mo:'), `should render compact monthly label in session line: ${line}`);
+  assert.ok(line.includes('MCP:'), `should render compact MCP label in session line: ${line}`);
   assert.ok(!line.includes('7d:'), `should not render 7d for zhipu in session line: ${line}`);
 });
 
@@ -2052,8 +2052,22 @@ test('renderSessionLine adapts monthly label for GLM providers in expanded usage
     sevenDayResetAt: null,
   };
   const line = stripAnsi(renderSessionLine(ctx));
-  assert.ok(line.includes('Monthly'), `should render Monthly in session line: ${line}`);
+  assert.ok(line.includes('MCP'), `should render MCP in session line: ${line}`);
   assert.ok(!line.includes('Weekly'), `should not render Weekly for zhipu: ${line}`);
+});
+
+test('renderUsageLine always shows MCP window for Zhipu even below sevenDayThreshold', () => {
+  const ctx = baseContext();
+  ctx.usageProvider = 'zhipu';
+  ctx.config.display.sevenDayThreshold = 80;
+  ctx.usageData = {
+    fiveHour: 45,
+    sevenDay: 3,
+    fiveHourResetAt: null,
+    sevenDayResetAt: null,
+  };
+  const line = stripAnsi(renderUsageLine(ctx));
+  assert.ok(line.includes('MCP'), `MCP window should show at 3% for zhipu (threshold bypass): ${line}`);
 });
 
 test('renderSessionLine displays limit reached warning', () => {

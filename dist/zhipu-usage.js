@@ -15,8 +15,12 @@ import { getHudPluginDir } from './claude-config-dir.js';
  * existing renderer already understands.
  *
  * Window mapping (matches GLM Coding Plan's quota model):
- *   - `TOKENS_LIMIT`  → 5-hour rolling window  → `UsageData.fiveHour`
- *   - `TIME_LIMIT`    → monthly quota           → `UsageData.sevenDay`
+ *   - `TOKENS_LIMIT`  → 5-hour token rolling window  → `UsageData.fiveHour`
+ *   - `TIME_LIMIT`    → MCP tool usage (monthly)      → `UsageData.sevenDay`
+ *
+ * Old plans (老套餐) only return `TOKENS_LIMIT`; new plans (新套餐/lite)
+ * also return `TIME_LIMIT` for MCP tools (search-prime, web-reader, zread).
+ * When `TIME_LIMIT` is absent, `sevenDay` is null and the MCP window is hidden.
  *
  * Auth uses the same `ANTHROPIC_AUTH_TOKEN` the user already configured for
  * Claude Code (passed verbatim as the `Authorization` header, matching the

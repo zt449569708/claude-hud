@@ -5,7 +5,7 @@ All notable changes to Claude HUD will be documented in this file.
 ## [Unreleased]
 
 ### Added
-- Add GLM Coding Plan (智谱 / Z.ai) usage display. When `ANTHROPIC_BASE_URL` points at `bigmodel.cn` or `api.z.ai`, ClaudeHUD fetches the 5-hour token window and monthly quota — including `nextResetTime` countdowns — from the provider's monitor API using `ANTHROPIC_AUTH_TOKEN`, caches the result locally, and renders it through the existing usage line with a `Monthly` / `本月` second-window label. Stale cache triggers a detached background refresh (`--zhipu-refresh`) so the statusline never blocks on network.
+- Add GLM Coding Plan (智谱 / Z.ai) usage display. When `ANTHROPIC_BASE_URL` points at `bigmodel.cn` or `api.z.ai`, ClaudeHUD fetches the 5-hour token window and MCP tool quota — including `nextResetTime` countdowns — from the provider's monitor API using `ANTHROPIC_AUTH_TOKEN`, caches the result locally, and renders it through the existing usage line with an `MCP` / `MCP用量` second-window label (always visible for GLM providers, bypassing the 7d threshold). Old plans without MCP quota show only the 5h window. Stale cache triggers a detached background refresh (`--zhipu-refresh`) so the statusline never blocks on network.
 
 ## [0.2.0] - 2026-06-15
 

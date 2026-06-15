@@ -5,7 +5,7 @@ export const en: Messages = {
   "label.context": "Context",
   "label.usage": "Usage",
   "label.weekly": "Weekly",
-  "label.monthly": "Monthly",
+  "label.mcp": "MCP",
   "label.approxRam": "Approx RAM",
   "label.promptCache": "Cache",
   "label.rules": "rules",

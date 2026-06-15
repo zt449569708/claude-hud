@@ -22,8 +22,8 @@ export function renderUsageLine(ctx, alignLabels = false) {
     }
     const usageLabel = progressLabel("label.usage", colors, alignLabels);
     const isZhipu = ctx.usageProvider === 'zhipu' || ctx.usageProvider === 'zai';
-    const secondWindowShort = isZhipu ? 'mo' : '7d';
-    const secondWindowLabelKey = isZhipu ? 'label.monthly' : 'label.weekly';
+    const secondWindowShort = isZhipu ? 'MCP' : '7d';
+    const secondWindowLabelKey = isZhipu ? 'label.mcp' : 'label.weekly';
     const secondWindowMs = isZhipu ? MONTHLY_WINDOW_MS : SEVEN_DAY_WINDOW_MS;
     const balanceLabel = ctx.usageData.balanceLabel ?? null;
     const hasWindowData = ctx.usageData.fiveHour !== null || ctx.usageData.sevenDay !== null;
@@ -62,8 +62,8 @@ export function renderUsageLine(ctx, alignLabels = false) {
         const fiveHourPart = fiveHour !== null
             ? formatCompactWindowPart("5h", fiveHour, ctx.usageData.fiveHourResetAt, FIVE_HOUR_WINDOW_MS, timeFormat, colors, usageValueMode)
             : null;
-        const sevenDayPart = (sevenDay !== null && (fiveHour === null || sevenDay >= sevenDayThreshold))
-            ? formatCompactWindowPart(secondWindowShort, sevenDay, ctx.usageData.sevenDayResetAt, SEVEN_DAY_WINDOW_MS, timeFormat, colors, usageValueMode)
+        const sevenDayPart = (sevenDay !== null && (fiveHour === null || isZhipu || sevenDay >= sevenDayThreshold))
+            ? formatCompactWindowPart(secondWindowShort, sevenDay, ctx.usageData.sevenDayResetAt, secondWindowMs, timeFormat, colors, usageValueMode)
             : null;
         if (fiveHourPart && sevenDayPart) {
             return appendBalance(`${fiveHourPart} | ${sevenDayPart}`, balanceLabel);
@@ -103,7 +103,7 @@ export function renderUsageLine(ctx, alignLabels = false) {
         showResetLabel,
         usageValueMode,
     });
-    if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
+    if (sevenDay !== null && (isZhipu || sevenDay >= sevenDayThreshold)) {
         const sevenDayPart = formatUsageWindowPart({
             label: t(secondWindowLabelKey),
             labelKey: secondWindowLabelKey,
