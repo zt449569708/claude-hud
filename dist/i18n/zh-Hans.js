@@ -3,6 +3,7 @@ export const zhHans = {
     "label.context": "上下文",
     "label.usage": "用量",
     "label.weekly": "本周",
+    "label.monthly": "本月",
     "label.approxRam": "内存",
     "label.promptCache": "缓存",
     "label.rules": "规则",

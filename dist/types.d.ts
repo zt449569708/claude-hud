@@ -1,5 +1,6 @@
 import type { HudConfig } from './config.js';
 import type { GitStatus } from './git.js';
+import type { ZhipuProvider } from './zhipu-usage.js';
 export interface StdinData {
     transcript_path?: string;
     cwd?: string;
@@ -128,6 +129,7 @@ export interface RenderContext {
     sessionDuration: string;
     gitStatus: GitStatus | null;
     usageData: UsageData | null;
+    usageProvider?: ZhipuProvider | null;
     memoryUsage: MemoryInfo | null;
     config: HudConfig;
     extraLabel: string | null;

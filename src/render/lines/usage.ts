@@ -32,6 +32,9 @@ export function renderUsageLine(
   }
 
   const usageLabel = progressLabel("label.usage", colors, alignLabels);
+  const isZhipu = ctx.usageProvider === 'zhipu' || ctx.usageProvider === 'zai';
+  const secondWindowShort = isZhipu ? 'mo' : '7d';
+  const secondWindowLabelKey: MessageKey = isZhipu ? 'label.monthly' : 'label.weekly';
   const balanceLabel = ctx.usageData.balanceLabel ?? null;
   const hasWindowData = ctx.usageData.fiveHour !== null || ctx.usageData.sevenDay !== null;
 
@@ -78,7 +81,7 @@ export function renderUsageLine(
       ? formatCompactWindowPart("5h", fiveHour, ctx.usageData.fiveHourResetAt, FIVE_HOUR_WINDOW_MS, timeFormat, colors, usageValueMode)
       : null;
     const sevenDayPart = (sevenDay !== null && (fiveHour === null || sevenDay >= sevenDayThreshold))
-      ? formatCompactWindowPart("7d", sevenDay, ctx.usageData.sevenDayResetAt, SEVEN_DAY_WINDOW_MS, timeFormat, colors, usageValueMode)
+      ? formatCompactWindowPart(secondWindowShort, sevenDay, ctx.usageData.sevenDayResetAt, SEVEN_DAY_WINDOW_MS, timeFormat, colors, usageValueMode)
       : null;
 
     if (fiveHourPart && sevenDayPart) {
@@ -93,8 +96,8 @@ export function renderUsageLine(
 
   if (fiveHour === null && sevenDay !== null) {
     const weeklyOnlyPart = formatUsageWindowPart({
-      label: t("label.weekly"),
-      labelKey: "label.weekly",
+      label: t(secondWindowLabelKey),
+      labelKey: secondWindowLabelKey,
       percent: sevenDay,
       resetAt: ctx.usageData.sevenDayResetAt,
       windowMs: SEVEN_DAY_WINDOW_MS,
@@ -125,8 +128,8 @@ export function renderUsageLine(
 
   if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
     const sevenDayPart = formatUsageWindowPart({
-      label: t("label.weekly"),
-      labelKey: "label.weekly",
+      label: t(secondWindowLabelKey),
+      labelKey: secondWindowLabelKey,
       percent: sevenDay,
       resetAt: ctx.usageData.sevenDayResetAt,
       windowMs: SEVEN_DAY_WINDOW_MS,

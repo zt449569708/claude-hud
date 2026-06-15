@@ -3,6 +3,7 @@ export type MessageKey =
   | "label.context"
   | "label.usage"
   | "label.weekly"
+  | "label.monthly"
   | "label.approxRam"
   | "label.promptCache"
   | "label.rules"

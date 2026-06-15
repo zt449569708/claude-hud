@@ -106,6 +106,10 @@ export interface HudConfig {
         showAdvisor: boolean;
         advisorOverride: string;
         autoCompactWindow: number | null;
+        showZhipuUsage: boolean;
+        zhipuUsageCachePath: string;
+        zhipuUsageFreshnessMs: number;
+        zhipuUsageFetchTimeoutMs: number;
     };
     colors: HudColorOverrides;
 }

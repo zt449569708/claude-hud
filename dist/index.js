@@ -10,6 +10,7 @@ import { getMemoryUsage } from "./memory.js";
 import { resolveEffortLevel } from "./effort.js";
 import { applyContextWindowFallback } from "./context-cache.js";
 import { getUsageFromExternalSnapshot, writeExternalUsageSnapshot } from "./external-usage.js";
+import { detectZhipuProvider, getUsageFromZhipu } from "./zhipu-usage.js";
 import { setLanguage, t } from "./i18n/index.js";
 export { getUsageFromExternalSnapshot, writeExternalUsageSnapshot } from "./external-usage.js";
 import { fileURLToPath } from "node:url";
@@ -48,6 +49,8 @@ export async function main(overrides = {}) {
         getClaudeCodeVersion,
         getMemoryUsage,
         applyContextWindowFallback,
+        detectZhipuProvider,
+        getUsageFromZhipu,
         render,
         now: () => Date.now(),
         log: console.log,
@@ -87,10 +90,17 @@ export async function main(overrides = {}) {
         if (shouldWriteUsage && stdinUsage) {
             deps.writeExternalUsageSnapshot(config, stdinUsage, deps.now());
         }
+        // Detect GLM Coding Plan (智谱 / Z.ai) for usage routing + label rendering.
+        const zhipuProvider = deps.detectZhipuProvider(undefined, stdin.model?.id);
         if (shouldReadUsage) {
             usageData = stdinUsage;
             if (!usageData) {
-                usageData = deps.getUsageFromExternalSnapshot(config, deps.now());
+                if (zhipuProvider && config.display.showZhipuUsage !== false) {
+                    usageData = await deps.getUsageFromZhipu(config);
+                }
+                if (!usageData) {
+                    usageData = deps.getUsageFromExternalSnapshot(config, deps.now());
+                }
             }
             else if (config.display.externalUsagePath) {
                 const ext = deps.getUsageFromExternalSnapshot(config, deps.now());
@@ -121,6 +131,7 @@ export async function main(overrides = {}) {
             sessionDuration,
             gitStatus,
             usageData,
+            usageProvider: zhipuProvider,
             memoryUsage,
             config,
             extraLabel,

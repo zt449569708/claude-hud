@@ -20,6 +20,9 @@ export function renderUsageLine(ctx, alignLabels = false) {
         return null;
     }
     const usageLabel = progressLabel("label.usage", colors, alignLabels);
+    const isZhipu = ctx.usageProvider === 'zhipu' || ctx.usageProvider === 'zai';
+    const secondWindowShort = isZhipu ? 'mo' : '7d';
+    const secondWindowLabelKey = isZhipu ? 'label.monthly' : 'label.weekly';
     const balanceLabel = ctx.usageData.balanceLabel ?? null;
     const hasWindowData = ctx.usageData.fiveHour !== null || ctx.usageData.sevenDay !== null;
     if (balanceLabel && !hasWindowData) {
@@ -58,7 +61,7 @@ export function renderUsageLine(ctx, alignLabels = false) {
             ? formatCompactWindowPart("5h", fiveHour, ctx.usageData.fiveHourResetAt, FIVE_HOUR_WINDOW_MS, timeFormat, colors, usageValueMode)
             : null;
         const sevenDayPart = (sevenDay !== null && (fiveHour === null || sevenDay >= sevenDayThreshold))
-            ? formatCompactWindowPart("7d", sevenDay, ctx.usageData.sevenDayResetAt, SEVEN_DAY_WINDOW_MS, timeFormat, colors, usageValueMode)
+            ? formatCompactWindowPart(secondWindowShort, sevenDay, ctx.usageData.sevenDayResetAt, SEVEN_DAY_WINDOW_MS, timeFormat, colors, usageValueMode)
             : null;
         if (fiveHourPart && sevenDayPart) {
             return appendBalance(`${fiveHourPart} | ${sevenDayPart}`, balanceLabel);
@@ -70,8 +73,8 @@ export function renderUsageLine(ctx, alignLabels = false) {
     const barWidth = getAdaptiveBarWidth();
     if (fiveHour === null && sevenDay !== null) {
         const weeklyOnlyPart = formatUsageWindowPart({
-            label: t("label.weekly"),
-            labelKey: "label.weekly",
+            label: t(secondWindowLabelKey),
+            labelKey: secondWindowLabelKey,
             percent: sevenDay,
             resetAt: ctx.usageData.sevenDayResetAt,
             windowMs: SEVEN_DAY_WINDOW_MS,
@@ -100,8 +103,8 @@ export function renderUsageLine(ctx, alignLabels = false) {
     });
     if (sevenDay !== null && sevenDay >= sevenDayThreshold) {
         const sevenDayPart = formatUsageWindowPart({
-            label: t("label.weekly"),
-            labelKey: "label.weekly",
+            label: t(secondWindowLabelKey),
+            labelKey: secondWindowLabelKey,
             percent: sevenDay,
             resetAt: ctx.usageData.sevenDayResetAt,
             windowMs: SEVEN_DAY_WINDOW_MS,

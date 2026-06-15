@@ -166,6 +166,10 @@ export interface HudConfig {
     // shorter label or transcript has not been written yet.
     advisorOverride: string;
     autoCompactWindow: number | null;
+    showZhipuUsage: boolean;
+    zhipuUsageCachePath: string;
+    zhipuUsageFreshnessMs: number;
+    zhipuUsageFetchTimeoutMs: number;
   };
   colors: HudColorOverrides;
 }
@@ -240,6 +244,10 @@ export const DEFAULT_CONFIG: HudConfig = {
     showAdvisor: false,
     advisorOverride: '',
     autoCompactWindow: null,
+    showZhipuUsage: true,
+    zhipuUsageCachePath: '',
+    zhipuUsageFreshnessMs: 60_000,
+    zhipuUsageFetchTimeoutMs: 1000,
   },
   colors: {
     context: 'green',
@@ -688,6 +696,18 @@ export function mergeConfig(userConfig: Partial<HudConfig>): HudConfig {
       ? migrated.display.advisorOverride.slice(0, 80)
       : DEFAULT_CONFIG.display.advisorOverride,
     autoCompactWindow: validateAutoCompactWindow(migrated.display?.autoCompactWindow),
+    showZhipuUsage: typeof migrated.display?.showZhipuUsage === 'boolean'
+      ? migrated.display.showZhipuUsage
+      : DEFAULT_CONFIG.display.showZhipuUsage,
+    zhipuUsageCachePath: validateOptionalPath(migrated.display?.zhipuUsageCachePath),
+    zhipuUsageFreshnessMs: typeof migrated.display?.zhipuUsageFreshnessMs === 'number'
+      && Number.isFinite(migrated.display.zhipuUsageFreshnessMs)
+      ? Math.max(0, Math.floor(migrated.display.zhipuUsageFreshnessMs))
+      : DEFAULT_CONFIG.display.zhipuUsageFreshnessMs,
+    zhipuUsageFetchTimeoutMs: validateNonNegativeInteger(
+      migrated.display?.zhipuUsageFetchTimeoutMs,
+      DEFAULT_CONFIG.display.zhipuUsageFetchTimeoutMs,
+    ),
   };
 
   const colors = {

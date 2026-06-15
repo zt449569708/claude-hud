@@ -191,6 +191,10 @@ Chinese HUD labels are available as an explicit opt-in. English stays the defaul
 | `display.externalUsagePath` | string | `""` | Optional path to a local usage snapshot file. When stdin `rate_limits` are present, only `balance_label` is appended; when they are missing, valid usage windows can be used as a fallback |
 | `display.externalUsageWritePath` | string | `""` | Optional absolute `.json` path in an existing directory. When stdin `rate_limits` exists, ClaudeHUD writes a private snapshot for other local tools. Relative paths, non-json files, and missing parent directories are ignored |
 | `display.externalUsageFreshnessMs` | number | `300000` | Maximum allowed age for the external usage snapshot before it is ignored |
+| `display.showZhipuUsage` | boolean | true | Show GLM Coding Plan (智谱 / Z.ai) usage when `ANTHROPIC_BASE_URL` points at bigmodel.cn or api.z.ai and `ANTHROPIC_AUTH_TOKEN` is set |
+| `display.zhipuUsageCachePath` | string | `""` | Optional custom path for the GLM usage cache file. Defaults to `~/.claude/plugins/claude-hud/zhipu-usage.json` |
+| `display.zhipuUsageFreshnessMs` | number | `60000` | Maximum age of the cached GLM usage before a fresh fetch is triggered |
+| `display.zhipuUsageFetchTimeoutMs` | number | `1000` | Timeout in milliseconds for a single GLM usage fetch |
 | `display.showTokenBreakdown` | boolean | true | Show token details at high context (85%+) |
 | `display.showTools` | boolean | false | Show tools activity line |
 | `display.showSkills` | boolean | false | Show active Skills detected from `Skill` tool invocations |
@@ -294,6 +298,22 @@ Example fallback snapshot:
   }
 }
 ```
+
+### GLM Coding Plan (智谱 / Z.ai)
+
+ClaudeHUD also supports GLM Coding Plan usage. When `ANTHROPIC_BASE_URL` points at `open.bigmodel.cn`, `dev.bigmodel.cn`, or `api.z.ai`, and `ANTHROPIC_AUTH_TOKEN` is set, ClaudeHUD automatically fetches your quota from the provider's monitor API and renders it on the existing usage line.
+
+Window mapping:
+- **5h** — the 5-hour token rolling window (`TOKENS_LIMIT`)
+- **Monthly** / **本月** — the monthly quota (`TIME_LIMIT`), shown when it crosses the `sevenDayThreshold`
+
+ClaudeHUD caches the result locally (`~/.claude/plugins/claude-hud/zhipu-usage.json` by default) and re-fetches at most once per `zhipuUsageFreshnessMs` (60s by default), so the statusline stays responsive. A single fetch is capped at `zhipuUsageFetchTimeoutMs` (1s); on failure the last cached value is shown until it ages out.
+
+Set `display.showZhipuUsage` to `false` to disable this source entirely. The provider is detected automatically from `ANTHROPIC_BASE_URL`, with a `glm-` model-id fallback.
+
+**Requirements:**
+- `ANTHROPIC_BASE_URL` set to a GLM Coding Plan endpoint
+- `ANTHROPIC_AUTH_TOKEN` set (the same token you use for Claude Code)
 
 ### Example Configuration
 

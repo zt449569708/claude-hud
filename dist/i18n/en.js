@@ -3,6 +3,7 @@ export const en = {
     "label.context": "Context",
     "label.usage": "Usage",
     "label.weekly": "Weekly",
+    "label.monthly": "Monthly",
     "label.approxRam": "Approx RAM",
     "label.promptCache": "Cache",
     "label.rules": "rules",

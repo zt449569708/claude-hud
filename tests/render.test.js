@@ -1995,6 +1995,37 @@ test('renderUsageLine shows weekly-only usage without a ghost 5h section', () =>
   assert.ok(!line.includes('|'), `should not render a separator for a missing 5h window: ${line}`);
 });
 
+test('renderUsageLine shows Monthly label for GLM Coding Plan providers in expanded mode', () => {
+  const ctx = baseContext();
+  ctx.config.display.sevenDayThreshold = 80;
+  ctx.usageProvider = 'zhipu';
+  ctx.usageData = {
+    fiveHour: 45,
+    sevenDay: 85,
+    fiveHourResetAt: null,
+    sevenDayResetAt: null,
+  };
+  const line = stripAnsi(renderUsageLine(ctx));
+  assert.ok(line.includes('Monthly'), `should render monthly window for zhipu: ${line}`);
+  assert.ok(!line.includes('Weekly'), `should not render weekly for zhipu: ${line}`);
+  assert.ok(line.includes('5h'), `5h window label stays the same: ${line}`);
+});
+
+test('renderUsageLine uses mo short label for GLM providers in compact mode', () => {
+  const ctx = baseContext();
+  ctx.config.display.usageCompact = true;
+  ctx.usageProvider = 'zai';
+  ctx.usageData = {
+    fiveHour: 45,
+    sevenDay: 85,
+    fiveHourResetAt: null,
+    sevenDayResetAt: null,
+  };
+  const line = stripAnsi(renderUsageLine(ctx));
+  assert.ok(line.includes('mo:'), `should render compact monthly label: ${line}`);
+  assert.ok(!line.includes('7d:'), `should not render 7d for glm provider: ${line}`);
+});
+
 test('renderSessionLine displays limit reached warning', () => {
   const ctx = baseContext();
   const resetTime = new Date(Date.now() + 3600000); // 1 hour from now
