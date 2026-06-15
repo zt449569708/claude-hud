@@ -2011,7 +2011,7 @@ test('renderUsageLine shows MCP label for GLM Coding Plan providers in expanded 
   assert.ok(line.includes('5h'), `5h window label stays the same: ${line}`);
 });
 
-test('renderUsageLine uses mo short label for GLM providers in compact mode', () => {
+test('renderUsageLine uses MCP short label for GLM providers in compact mode', () => {
   const ctx = baseContext();
   ctx.config.display.usageCompact = true;
   ctx.usageProvider = 'zai';
@@ -2026,7 +2026,7 @@ test('renderUsageLine uses mo short label for GLM providers in compact mode', ()
   assert.ok(!line.includes('7d:'), `should not render 7d for glm provider: ${line}`);
 });
 
-test('renderSessionLine adapts monthly label for GLM providers in compact usage', () => {
+test('renderSessionLine adapts MCP label for GLM providers in compact usage', () => {
   const ctx = baseContext();
   ctx.config.display.usageCompact = true;
   ctx.usageProvider = 'zhipu';
@@ -2041,7 +2041,7 @@ test('renderSessionLine adapts monthly label for GLM providers in compact usage'
   assert.ok(!line.includes('7d:'), `should not render 7d for zhipu in session line: ${line}`);
 });
 
-test('renderSessionLine adapts monthly label for GLM providers in expanded usage', () => {
+test('renderSessionLine adapts MCP label for GLM providers in expanded usage', () => {
   const ctx = baseContext();
   ctx.usageProvider = 'zhipu';
   ctx.config.display.sevenDayThreshold = 80;

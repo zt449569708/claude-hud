@@ -305,7 +305,7 @@ ClaudeHUD also supports GLM Coding Plan usage. When `ANTHROPIC_BASE_URL` points 
 
 Window mapping:
 - **5h** — the 5-hour token rolling window (`TOKENS_LIMIT`)
-- **Monthly** / **本月** — the monthly quota (`TIME_LIMIT`), shown when it crosses the `sevenDayThreshold`
+- **MCP** — MCP tool usage with a monthly reset (`TIME_LIMIT`), always visible for GLM providers
 
 ClaudeHUD caches the result locally (`~/.claude/plugins/claude-hud/zhipu-usage.json` by default) and re-fetches at most once per `zhipuUsageFreshnessMs` (60s by default), so the statusline stays responsive. A single fetch is capped at `zhipuUsageFetchTimeoutMs` (1s); on failure the last cached value is shown until it ages out.
 
