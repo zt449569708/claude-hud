@@ -10,7 +10,7 @@ import { getMemoryUsage } from "./memory.js";
 import { resolveEffortLevel } from "./effort.js";
 import { applyContextWindowFallback } from "./context-cache.js";
 import { getUsageFromExternalSnapshot, writeExternalUsageSnapshot } from "./external-usage.js";
-import { detectZhipuProvider, getUsageFromZhipu } from "./zhipu-usage.js";
+import { detectZhipuProvider, getUsageFromZhipu, spawnDetachedRefresh, refreshZhipuCacheStandalone } from "./zhipu-usage.js";
 import { setLanguage, t } from "./i18n/index.js";
 export { getUsageFromExternalSnapshot, writeExternalUsageSnapshot } from "./external-usage.js";
 import { fileURLToPath } from "node:url";
@@ -51,6 +51,7 @@ export async function main(overrides = {}) {
         applyContextWindowFallback,
         detectZhipuProvider,
         getUsageFromZhipu,
+        spawnZhipuRefresh: spawnDetachedRefresh,
         render,
         now: () => Date.now(),
         log: console.log,
@@ -96,7 +97,7 @@ export async function main(overrides = {}) {
             usageData = stdinUsage;
             if (!usageData) {
                 if (zhipuProvider && config.display.showZhipuUsage !== false) {
-                    usageData = await deps.getUsageFromZhipu(config);
+                    usageData = await deps.getUsageFromZhipu(config, { spawnRefresh: deps.spawnZhipuRefresh });
                 }
                 if (!usageData) {
                     usageData = deps.getUsageFromExternalSnapshot(config, deps.now());
@@ -171,6 +172,11 @@ const isSamePath = (a, b) => {
     }
 };
 if (argvPath && isSamePath(argvPath, scriptPath)) {
-    void main();
+    if (process.argv.includes("--zhipu-refresh")) {
+        void refreshZhipuCacheStandalone().finally(() => process.exit(0));
+    }
+    else {
+        void main();
+    }
 }
 //# sourceMappingURL=index.js.map

@@ -27,6 +27,7 @@ export type MainDeps = {
     applyContextWindowFallback: typeof applyContextWindowFallback;
     detectZhipuProvider: typeof detectZhipuProvider;
     getUsageFromZhipu: typeof getUsageFromZhipu;
+    spawnZhipuRefresh: () => void;
     render: typeof render;
     now: () => number;
     log: (...args: unknown[]) => void;

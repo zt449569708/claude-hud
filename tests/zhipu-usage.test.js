@@ -236,6 +236,40 @@ test('getUsageFromZhipu falls back to stale cache on fetch failure', async () =>
   }
 });
 
+test('getUsageFromZhipu spawns background refresh and returns stale data immediately', async () => {
+  const { cachePath, cleanup } = await withTempDir();
+  const now = Date.UTC(2026, 5, 15, 12, 0, 0);
+  await writeFile(
+    cachePath,
+    JSON.stringify({
+      updated_at: new Date(now - 120_000).toISOString(),
+      five_hour: { used_percentage: 55, resets_at: '2026-06-15T15:00:00.000Z' },
+      seven_day: { used_percentage: null, resets_at: null },
+    }),
+    'utf8',
+  );
+
+  try {
+    let spawns = 0;
+    let fetchCalls = 0;
+    const usage = await getUsageFromZhipu(
+      makeConfig({ zhipuUsageCachePath: cachePath, zhipuUsageFreshnessMs: 1000 }),
+      {
+        env: ZHIPU_ENV,
+        now: () => now,
+        fetcher: async () => { fetchCalls += 1; return {}; },
+        spawnRefresh: () => { spawns += 1; },
+      },
+    );
+    assert.equal(usage.fiveHour, 55);
+    assert.deepEqual(usage.fiveHourResetAt, new Date('2026-06-15T15:00:00.000Z'));
+    assert.equal(spawns, 1);
+    assert.equal(fetchCalls, 0);
+  } finally {
+    await cleanup();
+  }
+});
+
 test('getUsageFromZhipu returns null when fetch fails and no cache exists', async () => {
   const { cachePath, cleanup } = await withTempDir();
   const now = Date.UTC(2026, 5, 15, 12, 0, 0);

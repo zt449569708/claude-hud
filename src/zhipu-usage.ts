@@ -1,6 +1,8 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { getHudPluginDir } from './claude-config-dir.js';
 import type { HudConfig } from './config.js';
 import type { UsageData } from './types.js';
@@ -88,6 +90,8 @@ export interface ZhipuUsageDeps {
   fs?: FileSystemDeps;
   env?: ZhipuEnv;
   now?: () => number;
+  /** When provided, a stale cache triggers a detached background refresh instead of a blocking fetch. */
+  spawnRefresh?: () => void;
 }
 
 /**
@@ -321,16 +325,40 @@ const defaultFetcher: ZhipuFetcher = async (url, authToken, timeoutMs) => {
   }
 };
 
+/** Fetch the quota endpoint, parse, and persist to cache. Returns null on any failure. */
+async function fetchAndCache(
+  url: string,
+  authToken: string,
+  timeoutMs: number,
+  cachePath: string,
+  now: number,
+  deps: { fetcher: ZhipuFetcher; fs: FileSystemDeps },
+): Promise<UsageData | null> {
+  try {
+    const raw = await deps.fetcher(url, authToken, timeoutMs);
+    const usage = parseZhipuQuota(raw);
+    if (usage) {
+      writeCache(cachePath, usage, now, deps.fs);
+      return usage;
+    }
+  } catch {
+    // fetch/parse/write failure is non-fatal
+  }
+  return null;
+}
+
 /**
  * Resolve GLM Coding Plan usage for the current statusline tick.
  *
  * Strategy:
- *   1. Return a fresh cache hit immediately when available (the common case —
- *      avoids network on every ~300ms refresh).
- *   2. Otherwise fetch synchronously with a short timeout, persist the result,
- *      and return it.
- *   3. On any failure, return a stale cache entry if one exists so the HUD
- *      keeps showing the last known value rather than going dark.
+ *   1. Return a fresh cache hit immediately when available (the common case).
+ *   2. When the cache is stale but data exists, return it instantly and spawn
+ *      a detached background refresh (if spawnRefresh is provided) so the next
+ *      tick picks up fresh values with zero blocking.
+ *   3. First run (no cache) or no spawn capability — fetch synchronously with
+ *      a short timeout so an initial value appears without waiting.
+ *   4. On any failure, return the last stale value so the HUD keeps showing
+ *      the last known usage rather than going dark.
  *
  * Returns null when there is no token, no detectable provider, or no usable
  * data from any source — the renderer then hides the usage line.
@@ -373,19 +401,73 @@ export async function getUsageFromZhipu(
     return cached;
   }
 
-  try {
-    const url = `${baseDomain}${QUOTA_LIMIT_PATH}`;
-    const raw = await fetcher(url, env.authToken, fetchTimeoutMs);
-    const usage = parseZhipuQuota(raw);
-    if (usage) {
-      writeCache(cachePath, usage, nowFn(), fs);
-      return usage;
-    }
-  } catch {
-    // fall through to stale cache
+  // Fresh cache miss — look for stale data to display while refreshing.
+  const stale = readCache(cachePath, nowFn(), Number.POSITIVE_INFINITY, fs);
+  const url = `${baseDomain}${QUOTA_LIMIT_PATH}`;
+
+  if (stale && deps.spawnRefresh) {
+    // Background refresh: return stale data immediately and spawn a detached
+    // child to fetch + persist so the next statusline tick reads fresh values
+    // with zero blocking on this invocation.
+    deps.spawnRefresh();
+    return stale;
   }
 
-  // Stale read (ignores freshness) so a transient network blip does not blank
-  // the usage line for up to WRITE_THROTTLE_MS.
-  return readCache(cachePath, nowFn(), Number.POSITIVE_INFINITY, fs);
+  // First run (no stale data) or no spawn capability — sync fetch so an
+  // initial value appears without waiting a full refresh cycle.
+  return (await fetchAndCache(url, env.authToken, fetchTimeoutMs, cachePath, nowFn(), { fetcher, fs })) ?? stale;
+}
+
+/**
+ * Spawn a detached background process that refreshes the cache file. The child
+ * inherits the parent environment (including ANTHROPIC_AUTH_TOKEN) and runs
+ * `node index.js --zhipu-refresh`. Failures are silent — the next statusline
+ * tick simply retries.
+ */
+export function spawnDetachedRefresh(): void {
+  try {
+    const entry = path.join(path.dirname(fileURLToPath(import.meta.url)), 'index.js');
+    const child = spawn(process.execPath, [entry, '--zhipu-refresh'], {
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+  } catch {
+    // spawn failure is non-fatal — next statusline tick will retry
+  }
+}
+
+/**
+ * Standalone cache refresh for the detached `--zhipu-refresh` child process.
+ * Reads env + config, fetches the quota, and writes the cache. Silently exits
+ * on any failure so a broken background refresh never surfaces to the user.
+ */
+export async function refreshZhipuCacheStandalone(): Promise<void> {
+  const env: ZhipuEnv = {
+    baseUrl: process.env.ANTHROPIC_BASE_URL,
+    authToken: process.env.ANTHROPIC_AUTH_TOKEN,
+  };
+  if (!detectZhipuProvider(env) || !env.authToken) {
+    return;
+  }
+
+  const baseDomain = resolveBaseDomain(env.baseUrl ?? '');
+  if (!baseDomain) {
+    return;
+  }
+
+  const { loadConfig } = await import('./config.js');
+  const config = await loadConfig();
+  const cachePath = (config.display?.zhipuUsageCachePath ?? '').trim()
+    || path.join(getHudPluginDir(os.homedir()), DEFAULT_CACHE_FILENAME);
+  const timeoutMs = config.display?.zhipuUsageFetchTimeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
+
+  await fetchAndCache(
+    `${baseDomain}${QUOTA_LIMIT_PATH}`,
+    env.authToken,
+    timeoutMs,
+    cachePath,
+    Date.now(),
+    { fetcher: defaultFetcher, fs: fsDeps },
+  );
 }

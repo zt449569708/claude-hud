@@ -10,7 +10,7 @@ import { getMemoryUsage } from "./memory.js";
 import { resolveEffortLevel } from "./effort.js";
 import { applyContextWindowFallback } from "./context-cache.js";
 import { getUsageFromExternalSnapshot, writeExternalUsageSnapshot } from "./external-usage.js";
-import { detectZhipuProvider, getUsageFromZhipu } from "./zhipu-usage.js";
+import { detectZhipuProvider, getUsageFromZhipu, spawnDetachedRefresh, refreshZhipuCacheStandalone } from "./zhipu-usage.js";
 import { setLanguage, t } from "./i18n/index.js";
 import type { RenderContext } from "./types.js";
 
@@ -34,6 +34,7 @@ export type MainDeps = {
   applyContextWindowFallback: typeof applyContextWindowFallback;
   detectZhipuProvider: typeof detectZhipuProvider;
   getUsageFromZhipu: typeof getUsageFromZhipu;
+  spawnZhipuRefresh: () => void;
   render: typeof render;
   now: () => number;
   log: (...args: unknown[]) => void;
@@ -77,6 +78,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
     applyContextWindowFallback,
     detectZhipuProvider,
     getUsageFromZhipu,
+    spawnZhipuRefresh: spawnDetachedRefresh,
     render,
     now: () => Date.now(),
     log: console.log,
@@ -133,7 +135,7 @@ export async function main(overrides: Partial<MainDeps> = {}): Promise<void> {
       usageData = stdinUsage;
       if (!usageData) {
         if (zhipuProvider && config.display.showZhipuUsage !== false) {
-          usageData = await deps.getUsageFromZhipu(config);
+          usageData = await deps.getUsageFromZhipu(config, { spawnRefresh: deps.spawnZhipuRefresh });
         }
         if (!usageData) {
           usageData = deps.getUsageFromExternalSnapshot(config, deps.now());
@@ -222,5 +224,9 @@ const isSamePath = (a: string, b: string): boolean => {
   }
 };
 if (argvPath && isSamePath(argvPath, scriptPath)) {
-  void main();
+  if (process.argv.includes("--zhipu-refresh")) {
+    void refreshZhipuCacheStandalone().finally(() => process.exit(0));
+  } else {
+    void main();
+  }
 }

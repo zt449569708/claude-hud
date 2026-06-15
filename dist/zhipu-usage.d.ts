@@ -23,6 +23,8 @@ export interface ZhipuUsageDeps {
     fs?: FileSystemDeps;
     env?: ZhipuEnv;
     now?: () => number;
+    /** When provided, a stale cache triggers a detached background refresh instead of a blocking fetch. */
+    spawnRefresh?: () => void;
 }
 /**
  * Detect a GLM Coding Plan provider from the Claude Code environment.
@@ -47,16 +49,31 @@ export declare function parseZhipuQuota(raw: unknown): UsageData | null;
  * Resolve GLM Coding Plan usage for the current statusline tick.
  *
  * Strategy:
- *   1. Return a fresh cache hit immediately when available (the common case —
- *      avoids network on every ~300ms refresh).
- *   2. Otherwise fetch synchronously with a short timeout, persist the result,
- *      and return it.
- *   3. On any failure, return a stale cache entry if one exists so the HUD
- *      keeps showing the last known value rather than going dark.
+ *   1. Return a fresh cache hit immediately when available (the common case).
+ *   2. When the cache is stale but data exists, return it instantly and spawn
+ *      a detached background refresh (if spawnRefresh is provided) so the next
+ *      tick picks up fresh values with zero blocking.
+ *   3. First run (no cache) or no spawn capability — fetch synchronously with
+ *      a short timeout so an initial value appears without waiting.
+ *   4. On any failure, return the last stale value so the HUD keeps showing
+ *      the last known usage rather than going dark.
  *
  * Returns null when there is no token, no detectable provider, or no usable
  * data from any source — the renderer then hides the usage line.
  */
 export declare function getUsageFromZhipu(config: HudConfig, deps?: ZhipuUsageDeps): Promise<UsageData | null>;
+/**
+ * Spawn a detached background process that refreshes the cache file. The child
+ * inherits the parent environment (including ANTHROPIC_AUTH_TOKEN) and runs
+ * `node index.js --zhipu-refresh`. Failures are silent — the next statusline
+ * tick simply retries.
+ */
+export declare function spawnDetachedRefresh(): void;
+/**
+ * Standalone cache refresh for the detached `--zhipu-refresh` child process.
+ * Reads env + config, fetches the quota, and writes the cache. Silently exits
+ * on any failure so a broken background refresh never surfaces to the user.
+ */
+export declare function refreshZhipuCacheStandalone(): Promise<void>;
 export {};
 //# sourceMappingURL=zhipu-usage.d.ts.map

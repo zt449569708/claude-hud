@@ -23,9 +23,12 @@ Advanced settings such as `colors.*`, `pathLevels`, `maxWidth`, `forceMaxWidth`,
 `display.autoCompactWindow`, `display.promptCacheTtlSeconds`,
 `display.usageThreshold`, `display.sevenDayThreshold`,
 `display.environmentThreshold`, `display.contextWarningThreshold`,
-`display.contextCriticalThreshold`, `display.advisorOverride`, and the
+`display.contextCriticalThreshold`, `display.advisorOverride`,
+`display.showZhipuUsage`, the `display.zhipuUsage*` keys, and the
 `display.externalUsage*` keys are preserved when saving but are not edited by
-this guided flow.
+this guided flow. GLM Coding Plan (智谱 / Z.ai) usage is auto-detected from
+`ANTHROPIC_BASE_URL` and rendered on the same usage line with a `Monthly` /
+`本月` second-window label when present.
 
 ---
 
