@@ -312,10 +312,26 @@ export async function getUsageFromZhipu(config, deps = {}) {
     const stale = readCache(cachePath, nowFn(), Number.POSITIVE_INFINITY, fs);
     const url = `${baseDomain}${QUOTA_LIMIT_PATH}`;
     if (stale && deps.spawnRefresh) {
-        // Background refresh: return stale data immediately and spawn a detached
-        // child to fetch + persist so the next statusline tick reads fresh values
-        // with zero blocking on this invocation.
-        deps.spawnRefresh();
+        // Throttle spawns via a marker file to avoid a process storm when the
+        // endpoint is persistently unreachable — without this guard every
+        // statusline tick (~300ms) would fork a new node process against a
+        // failing endpoint. Bounds spawn attempts to once per freshness window.
+        const markerPath = `${cachePath}.spawn`;
+        let allowSpawn = true;
+        try {
+            if (fs.existsSync(markerPath) && nowFn() - fs.statSync(markerPath).mtimeMs < freshnessMs) {
+                allowSpawn = false;
+            }
+            else {
+                fs.writeFileSync(markerPath, String(nowFn()), { encoding: 'utf8', flag: 'w' });
+            }
+        }
+        catch {
+            // fs errors are non-fatal — allow spawn
+        }
+        if (allowSpawn) {
+            deps.spawnRefresh();
+        }
         return stale;
     }
     // First run (no stale data) or no spawn capability — sync fetch so an

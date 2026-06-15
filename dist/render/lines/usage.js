@@ -7,6 +7,7 @@ import { progressLabel } from "./label-align.js";
 import { formatResetTime } from "../format-reset-time.js";
 const FIVE_HOUR_WINDOW_MS = 5 * 60 * 60 * 1000;
 const SEVEN_DAY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const MONTHLY_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 export function renderUsageLine(ctx, alignLabels = false) {
     const display = ctx.config?.display;
     const colors = ctx.config?.colors;
@@ -23,6 +24,7 @@ export function renderUsageLine(ctx, alignLabels = false) {
     const isZhipu = ctx.usageProvider === 'zhipu' || ctx.usageProvider === 'zai';
     const secondWindowShort = isZhipu ? 'mo' : '7d';
     const secondWindowLabelKey = isZhipu ? 'label.monthly' : 'label.weekly';
+    const secondWindowMs = isZhipu ? MONTHLY_WINDOW_MS : SEVEN_DAY_WINDOW_MS;
     const balanceLabel = ctx.usageData.balanceLabel ?? null;
     const hasWindowData = ctx.usageData.fiveHour !== null || ctx.usageData.sevenDay !== null;
     if (balanceLabel && !hasWindowData) {
@@ -77,7 +79,7 @@ export function renderUsageLine(ctx, alignLabels = false) {
             labelKey: secondWindowLabelKey,
             percent: sevenDay,
             resetAt: ctx.usageData.sevenDayResetAt,
-            windowMs: SEVEN_DAY_WINDOW_MS,
+            windowMs: secondWindowMs,
             colors,
             usageBarEnabled,
             barWidth,
@@ -107,7 +109,7 @@ export function renderUsageLine(ctx, alignLabels = false) {
             labelKey: secondWindowLabelKey,
             percent: sevenDay,
             resetAt: ctx.usageData.sevenDayResetAt,
-            windowMs: SEVEN_DAY_WINDOW_MS,
+            windowMs: secondWindowMs,
             colors,
             usageBarEnabled,
             barWidth,

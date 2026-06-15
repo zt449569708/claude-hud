@@ -2026,6 +2026,36 @@ test('renderUsageLine uses mo short label for GLM providers in compact mode', ()
   assert.ok(!line.includes('7d:'), `should not render 7d for glm provider: ${line}`);
 });
 
+test('renderSessionLine adapts monthly label for GLM providers in compact usage', () => {
+  const ctx = baseContext();
+  ctx.config.display.usageCompact = true;
+  ctx.usageProvider = 'zhipu';
+  ctx.usageData = {
+    fiveHour: 45,
+    sevenDay: 85,
+    fiveHourResetAt: null,
+    sevenDayResetAt: null,
+  };
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('mo:'), `should render compact monthly label in session line: ${line}`);
+  assert.ok(!line.includes('7d:'), `should not render 7d for zhipu in session line: ${line}`);
+});
+
+test('renderSessionLine adapts monthly label for GLM providers in expanded usage', () => {
+  const ctx = baseContext();
+  ctx.usageProvider = 'zhipu';
+  ctx.config.display.sevenDayThreshold = 80;
+  ctx.usageData = {
+    fiveHour: 45,
+    sevenDay: 85,
+    fiveHourResetAt: null,
+    sevenDayResetAt: null,
+  };
+  const line = stripAnsi(renderSessionLine(ctx));
+  assert.ok(line.includes('Monthly'), `should render Monthly in session line: ${line}`);
+  assert.ok(!line.includes('Weekly'), `should not render Weekly for zhipu: ${line}`);
+});
+
 test('renderSessionLine displays limit reached warning', () => {
   const ctx = baseContext();
   const resetTime = new Date(Date.now() + 3600000); // 1 hour from now

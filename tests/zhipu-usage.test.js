@@ -270,6 +270,38 @@ test('getUsageFromZhipu spawns background refresh and returns stale data immedia
   }
 });
 
+test('getUsageFromZhipu throttles consecutive spawns via marker file', async () => {
+  const { cachePath, cleanup } = await withTempDir();
+  const now = Date.UTC(2026, 5, 15, 12, 0, 0);
+  await writeFile(
+    cachePath,
+    JSON.stringify({
+      updated_at: new Date(now - 120_000).toISOString(),
+      five_hour: { used_percentage: 55, resets_at: null },
+      seven_day: { used_percentage: null, resets_at: null },
+    }),
+    'utf8',
+  );
+
+  try {
+    let spawns = 0;
+    const opts = {
+      env: ZHIPU_ENV,
+      now: () => now,
+      fetcher: async () => { throw new Error('unreachable'); },
+      spawnRefresh: () => { spawns += 1; },
+    };
+    const config = makeConfig({ zhipuUsageCachePath: cachePath, zhipuUsageFreshnessMs: 60_000 });
+
+    await getUsageFromZhipu(config, opts);
+    await getUsageFromZhipu(config, opts);
+
+    assert.equal(spawns, 1, `should only spawn once within freshness window, got ${spawns}`);
+  } finally {
+    await cleanup();
+  }
+});
+
 test('getUsageFromZhipu returns null when fetch fails and no cache exists', async () => {
   const { cachePath, cleanup } = await withTempDir();
   const now = Date.UTC(2026, 5, 15, 12, 0, 0);
