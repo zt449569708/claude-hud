@@ -183,7 +183,7 @@ export function writeExternalUsageSnapshot(config, usage, now = Date.now(), deps
 }
 export function getUsageFromExternalSnapshot(config, now = Date.now()) {
     const snapshotPath = config.display.externalUsagePath;
-    if (!snapshotPath) {
+    if (!snapshotPath || !path.isAbsolute(snapshotPath)) {
         return null;
     }
     try {
