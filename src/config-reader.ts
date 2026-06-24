@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { createHash } from 'node:crypto';
 import { createDebug } from './debug.js';
 import { getClaudeConfigDir, getClaudeConfigJsonPath, getHudPluginDir } from './claude-config-dir.js';
@@ -147,7 +147,8 @@ function pathsReferToSameLocation(pathA: string, pathB: string): boolean {
     const realPathA = fs.realpathSync.native(pathA);
     const realPathB = fs.realpathSync.native(pathB);
     return normalizePathForComparison(realPathA) === normalizePathForComparison(realPathB);
-  } catch {
+  } catch (err) {
+    debug('Failed to compare paths %s and %s:', pathA, pathB, err instanceof Error ? err.message : err);
     return false;
   }
 }
@@ -162,7 +163,8 @@ function statSentinel(filePath: string): SentinelState | null {
   try {
     const stat = fs.statSync(filePath);
     return { mtimeMs: stat.mtimeMs, size: stat.size };
-  } catch {
+  } catch (err) {
+    debug('Failed to stat sentinel %s:', filePath, err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -220,6 +222,15 @@ function statSentinels(paths: string[]): Record<string, SentinelState | null> {
   return result;
 }
 
+function ensurePrivateDir(dir: string): void {
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  try {
+    fs.chmodSync(dir, 0o700);
+  } catch {
+    // Best-effort: some filesystems do not support POSIX modes.
+  }
+}
+
 function sentinelsMatch(a: Record<string, SentinelState | null>, b: Record<string, SentinelState | null>): boolean {
   const keysA = Object.keys(a);
   const keysB = Object.keys(b);
@@ -270,7 +281,8 @@ function readConfigCache(cacheKey: Pick<ConfigCacheKey, 'cwd' | 'claudeConfigDir
       return null;
     }
     return parsed;
-  } catch {
+  } catch (err) {
+    debug('Failed to read config cache:', err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -278,11 +290,16 @@ function readConfigCache(cacheKey: Pick<ConfigCacheKey, 'cwd' | 'claudeConfigDir
 function writeConfigCache(key: ConfigCacheKey, data: ConfigCounts, homeDir: string): void {
   try {
     const cachePath = getConfigCachePath(key.cwd, key.claudeConfigDir, homeDir);
-    fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+    ensurePrivateDir(path.dirname(cachePath));
     const payload: ConfigCacheFile = { key, data };
-    fs.writeFileSync(cachePath, JSON.stringify(payload), 'utf8');
-  } catch {
-    // Cache write failures are non-fatal.
+    fs.writeFileSync(cachePath, JSON.stringify(payload), { encoding: 'utf8', mode: 0o600 });
+    try {
+      fs.chmodSync(cachePath, 0o600);
+    } catch {
+      // Best-effort: some filesystems do not support POSIX modes.
+    }
+  } catch (err) {
+    debug('Failed to write config cache:', err instanceof Error ? err.message : err);
   }
 }
 

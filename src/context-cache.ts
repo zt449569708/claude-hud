@@ -3,7 +3,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
 import { getHudPluginDir } from "./claude-config-dir.js";
+import { createDebug } from "./debug.js";
 import type { StdinData } from "./types.js";
+
+const debug = createDebug('context-cache');
 
 const CACHE_DIRNAME = "context-cache";
 
@@ -68,6 +71,15 @@ function getCacheDir(homeDir: string): string {
   return path.join(getHudPluginDir(homeDir), CACHE_DIRNAME);
 }
 
+function ensurePrivateDir(dir: string): void {
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  try {
+    fs.chmodSync(dir, 0o700);
+  } catch {
+    // Best-effort: some filesystems do not support POSIX modes.
+  }
+}
+
 /**
  * Read the last known good context snapshot from disk.
  * Returns null when the cache is missing, malformed, or invalid.
@@ -88,7 +100,8 @@ function readCache(
       return null;
     }
     return parsed;
-  } catch {
+  } catch (err) {
+    debug('Failed to read context cache:', err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -104,7 +117,8 @@ function shouldSkipWrite(
   try {
     const stat = fs.statSync(cachePath);
     return now - stat.mtimeMs < WRITE_TTL_MS;
-  } catch {
+  } catch (err) {
+    debug('Cache stat check failed (will write):', err instanceof Error ? err.message : err);
     return false;
   }
 }
@@ -126,9 +140,7 @@ function writeCache(
       return;
     }
     const cacheDir = path.dirname(cachePath);
-    if (!fs.existsSync(cacheDir)) {
-      fs.mkdirSync(cacheDir, { recursive: true });
-    }
+    ensurePrivateDir(cacheDir);
     const payload: ContextCache = {
       used_percentage: contextWindow.used_percentage ?? 0,
       remaining_percentage: contextWindow.remaining_percentage ?? null,
@@ -137,11 +149,19 @@ function writeCache(
       saved_at: now,
       session_name: sessionName ?? null,
     };
-    fs.writeFileSync(cachePath, JSON.stringify(payload), "utf8");
+    fs.writeFileSync(cachePath, JSON.stringify(payload), {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    try {
+      fs.chmodSync(cachePath, 0o600);
+    } catch {
+      // Best-effort: some filesystems do not support POSIX modes.
+    }
     const timestampSeconds = now / 1000;
     fs.utimesSync(cachePath, timestampSeconds, timestampSeconds);
-  } catch {
-    // Ignore cache write failures
+  } catch (err) {
+    debug('Failed to write context cache:', err instanceof Error ? err.message : err);
   }
 }
 
@@ -165,8 +185,8 @@ function sweepCacheDir(cacheDir: string, now: number): void {
           continue;
         }
         survivors.push({ fullPath, mtimeMs: stat.mtimeMs });
-      } catch {
-        // Ignore per-file failure
+      } catch (err) {
+        debug('Sweep: failed to process %s:', fullPath, err instanceof Error ? err.message : err);
       }
     }
 
@@ -176,13 +196,13 @@ function sweepCacheDir(cacheDir: string, now: number): void {
       for (let i = 0; i < toDelete; i += 1) {
         try {
           fs.unlinkSync(survivors[i].fullPath);
-        } catch {
-          // Ignore per-file failure
+        } catch (err) {
+          debug('Sweep: failed to unlink %s:', survivors[i].fullPath, err instanceof Error ? err.message : err);
         }
       }
     }
-  } catch {
-    // Ignore top-level sweep errors
+  } catch (err) {
+    debug('Cache sweep failed:', err instanceof Error ? err.message : err);
   }
 }
 

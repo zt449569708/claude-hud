@@ -7,6 +7,25 @@ All notable changes to Claude HUD will be documented in this file.
 ### Added
 - Add GLM Coding Plan (智谱 / Z.ai) usage display. When `ANTHROPIC_BASE_URL` points at `bigmodel.cn` or `api.z.ai`, ClaudeHUD fetches the 5-hour token window and MCP tool quota — including `nextResetTime` countdowns — from the provider's monitor API using `ANTHROPIC_AUTH_TOKEN`, caches the result locally, and renders it through the existing usage line with an `MCP` / `MCP用量` second-window label (always visible for GLM providers, bypassing the 7d threshold). Old plans without MCP quota show only the 5h window. Stale cache triggers a detached background refresh (`--zhipu-refresh`) so the statusline never blocks on network.
 
+## [0.3.0] - 2026-06-19
+
+### Added
+- Add `display.showProvider` and `display.providerName` so custom proxy users can optionally show provider labels before the model name in compact and expanded layouts (#629).
+
+### Changed
+- Extract shared model badge formatting so compact and expanded layouts keep provider labels and effort suffixes consistent (#629).
+
+### Fixed
+- Harden and document external usage snapshot read paths as absolute-only, with focused regression coverage for relative-path rejection (#637).
+- Add regression coverage for private `speed-cache` directory and cache file permissions introduced by the cache hardening work (#637).
+
+## [0.2.1] - 2026-06-18
+
+### Fixed
+- Require explicit `CLAUDE_HUD_ALLOW_EXTRA_CMD` opt-in before running `--extra-cmd`, and document the local command trust threshold (#619).
+- Merge missing seven-day usage from a configured external snapshot when stdin only supplies the five-hour usage window (#617).
+- Correct Opus 4.5+ local cost estimates to the current standard Anthropic rate while keeping older Opus 4.0/4.1 pricing unchanged (#625).
+
 ## [0.2.0] - 2026-06-15
 
 ### Added

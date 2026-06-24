@@ -421,7 +421,7 @@ test('resolveSessionCost falls back to transcript estimation when native cost is
 
   assert.ok(cost, 'expected fallback estimate');
   assert.equal(cost?.source, 'estimate');
-  assert.equal(formatUsd(cost?.totalUsd ?? 0), '$5.47');
+  assert.equal(formatUsd(cost?.totalUsd ?? 0), '$1.82');
 });
 
 test('resolveSessionCost ignores native cost for provider-routed sessions', () => {
@@ -505,6 +505,48 @@ test('estimateSessionCost prices Claude Haiku 4.5 (and future 4.x minors)', () =
   assert.equal(formatUsd(haiku35.totalUsd), '$1.20');
 });
 
+test('estimateSessionCost prices newer Opus 4 models below the Opus 4.0 and 4.1 fallback', () => {
+  const tokens = {
+    inputTokens: 1_000_000,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    outputTokens: 100_000,
+  };
+
+  const opus45 = estimateSessionCost({ model: { display_name: 'Claude Opus 4.5' } }, tokens);
+  assert.ok(opus45, 'expected non-null estimate for Claude Opus 4.5');
+  assert.equal(formatUsd(opus45.totalUsd), '$7.50');
+
+  const opus46 = estimateSessionCost({ model: { display_name: 'Claude Opus 4.6' } }, tokens);
+  assert.ok(opus46, 'expected non-null estimate for Claude Opus 4.6');
+  assert.equal(formatUsd(opus46.totalUsd), '$7.50');
+
+  // Tests that Bedrock-style strings in display_name are normalized correctly.
+  // Real Bedrock sessions set model.id (triggering isBedrockModelId → null),
+  // so this exercises the regex normalization path, not real Bedrock pricing.
+  const bedrockOpus46 = estimateSessionCost({ model: { display_name: 'eu.anthropic.claude-opus-4-6-v1:0' } }, tokens);
+  assert.ok(bedrockOpus46, 'expected model ID normalization to match Claude Opus 4.6');
+  assert.equal(formatUsd(bedrockOpus46.totalUsd), '$7.50');
+
+  const opus41 = estimateSessionCost({ model: { display_name: 'Claude Opus 4.1' } }, tokens);
+  assert.ok(opus41, 'expected non-null estimate for Claude Opus 4.1');
+  assert.equal(formatUsd(opus41.totalUsd), '$22.50');
+});
+
+test('estimateSessionCost returns null for real Bedrock sessions with model.id set', () => {
+  const tokens = {
+    inputTokens: 1_000_000,
+    cacheCreationTokens: 0,
+    cacheReadTokens: 0,
+    outputTokens: 100_000,
+  };
+
+  const result = estimateSessionCost(
+    { model: { id: 'eu.anthropic.claude-opus-4-5-v1:0', display_name: 'Claude Opus 4.5' } },
+    tokens,
+  );
+  assert.equal(result, null, 'Bedrock sessions (model.id contains anthropic.claude-) should skip estimation');
+});
 
 test('parseTranscript aggregates tools, agents, and todos', async () => {
   const fixturePath = fileURLToPath(new URL('./fixtures/transcript-basic.jsonl', import.meta.url));
